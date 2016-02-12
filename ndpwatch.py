@@ -13,14 +13,14 @@ MAX_IPV6_LEN = len("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff")
 MAX_MAC_LEN = len("ff:ff:ff:ff:ff:ff")
 
 hosts = [
-    ("uk-pf-aukstaiciu9", SshConnector, FreeBsdNeighbourTable),
-    ("uk-pf-ausros73", SshConnector, FreeBsdNeighbourTable),
-    ("uk-pf-m18-adm", SshConnector, FreeBsdNeighbourTable),
-    ("uk-pf-m18-stud", SshConnector, FreeBsdNeighbourTable),
-    ("uk-pf-maironio7", SshConnector, FreeBsdNeighbourTable),
-    ("uk-pf-utenio2", SshConnector, FreeBsdNeighbourTable),
-    ("uk-untangle", SshConnector, LinuxNeighbourTable),
-    #("uk-nas1", SshConnector, SolarisNeighbourTable),
+    ("mantas@uk-pf-aukstaiciu9", SshConnector, FreeBsdNeighbourTable),
+    ("mantas@uk-pf-ausros73", SshConnector, FreeBsdNeighbourTable),
+    ("mantas@uk-pf-m18-adm", SshConnector, FreeBsdNeighbourTable),
+    ("mantas@uk-pf-m18-stud", SshConnector, FreeBsdNeighbourTable),
+    ("mantas@uk-pf-maironio7", SshConnector, FreeBsdNeighbourTable),
+    ("mantas@uk-pf-utenio2", SshConnector, FreeBsdNeighbourTable),
+    ("root@uk-untangle", SshConnector, LinuxNeighbourTable),
+    #("root@uk-nas1", SshConnector, SolarisNeighbourTable),
 ]
 
 #δBase = δ.ext.declarative.declarative_base()
@@ -47,7 +47,7 @@ st = δ.sql.text("""
      """)
 
 for host, conn_type, nt_type in hosts:
-    nt = nt_type(conn_type("root@%s" % host))
+    nt = nt_type(conn_type(host))
     for item in nt.get_ndp6():
         ip = item["ip"].split("%")[0]
         mac = item["mac"]
