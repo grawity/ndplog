@@ -1,7 +1,7 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 from ipaddress import *
 from pprint import pprint
-from nullroute.sys.ifconfig import *
+from nullroute.system.ifconfig import *
 
 ## main
 
