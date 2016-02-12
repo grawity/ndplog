@@ -37,24 +37,34 @@ class NeighbourTable(object):
         assert(conn.popen)
         self.conn = conn
 
+    def get_all(self):
+        yield from self.get_arp4()
+        yield from self.get_ndp6()
+
 class LinuxNeighbourTable(NeighbourTable):
     def _parse_neigh(self, io):
         for line in io:
             line = line.strip().decode("utf-8").split()
-            i, entry = 0, {}
+            ip = mac = dev = None
+            i = 0
             while i < len(line):
                 if i == 0:
-                    entry["ip"] = line[i]
+                    ip = line[i]
                 elif line[i] == "dev":
-                    entry["dev"] = line[i+1]
+                    dev = line[i+1]
                     i += 1
                 elif line[i] == "lladdr":
-                    entry["mac"] = line[i+1]
+                    mac = line[i+1]
                     i += 1
                 else:
                     pass
                 i += 1
-            yield entry
+            if ip and mac:
+                yield {
+                    "ip": ip,
+                    "mac": mac,
+                    "dev": dev,
+                }
 
     def get_arp4(self):
         with self.conn.popen(["ip", "-4", "neigh"]) as proc:
