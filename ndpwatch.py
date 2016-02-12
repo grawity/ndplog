@@ -1,9 +1,16 @@
 #!/usr/bin/env python3
 from ipaddress import *
-from pprint import pprint
 from nullroute.system.ifconfig import *
+from pprint import pprint
+import sqlalchemy as δ
+import sqlalchemy.orm
+import time
 
 ## main
+
+MAX_IPV4_LEN = len("255.255.255.255")
+MAX_IPV6_LEN = len("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff")
+MAX_MAC_LEN = len("ff:ff:ff:ff:ff:ff")
 
 hosts = [
     ("uk-pf-aukstaiciu9", SshConnector, FreeBsdNeighbourTable),
@@ -12,20 +19,42 @@ hosts = [
     ("uk-pf-m18-stud", SshConnector, FreeBsdNeighbourTable),
     ("uk-pf-maironio7", SshConnector, FreeBsdNeighbourTable),
     ("uk-pf-utenio2", SshConnector, FreeBsdNeighbourTable),
-    #("uk-untangle", SshConnector, LinuxNeighbourTable),
+    ("uk-untangle", SshConnector, LinuxNeighbourTable),
     #("uk-nas1", SshConnector, SolarisNeighbourTable),
 ]
 
-ip_mac = {}
-mac_ip = {}
+#δBase = δ.ext.declarative.declarative_base()
+#
+#class Assoc(δBase):
+#    __tablename__ = "arplog"
+#
+#    id          = δ.Column(δ.Integer, δ.Sequence("arplog_seq"), primary_key=True)
+#    ip_addr     = δ.Column(δ.String(MAX_IPV6_LEN), nullable=False)
+#    mac_addr    = δ.Column(δ.String(MAX_MAC_LEN), nullable=False)
+#    first_seen  = δ.Column(δ.Integer)
+#    last_seen   = δ.Column(δ.Integer)
+
+with open("/home/grawity/lib/arplog.conf") as f:
+    db_url = f.readline().strip()
+
+δEngine = δ.create_engine(db_url)
+δConn = δEngine.connect()
+
+st = δ.sql.text("""
+        INSERT INTO arplog (ip_addr, mac_addr, first_seen, last_seen)
+        VALUES (:ip_addr, :mac_addr, :now, :now)
+        ON DUPLICATE KEY UPDATE last_seen=:now
+     """)
 
 for host, conn_type, nt_type in hosts:
     nt = nt_type(conn_type("root@%s" % host))
     for item in nt.get_ndp6():
-        ip = item["ip"]
+        ip = item["ip"].split("%")[0]
         mac = item["mac"]
-        if item["ip"].startswith("fe80:"):
+        if ip.startswith("fe80"):
             continue
-        ip_mac[item["ip"]] = item["mac"]
-
-pprint(ip_mac)
+        print(ip, mac)
+        #assoc = Assoc(ip_addr=ip, mac_addr=mac,
+        #              first_seen=time.time(), last_seen=time.time())
+        bound_st = st.bindparams(ip_addr=ip, mac_addr=mac, now=time.time())
+        r = δConn.execute(bound_st)
