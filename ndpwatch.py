@@ -60,15 +60,15 @@ st = δ.sql.text("""
 for host, conn_type, nt_type in hosts:
     print("connecting to", host)
     nt = nt_type(conn_type(host))
+    now = time.time()
     for item in nt.get_ndp6():
         ip = item["ip"].split("%")[0]
         mac = item["mac"]
         if ip.startswith("fe80"):
             continue
         print(ip, mac)
-        #assoc = Assoc(ip_addr=ip, mac_addr=mac,
-        #              first_seen=time.time(), last_seen=time.time())
-        bound_st = st.bindparams(ip_addr=ip, mac_addr=mac, now=time.time())
+        #assoc = Assoc(ip_addr=ip, mac_addr=mac, first_seen=now, last_seen=now)
+        bound_st = st.bindparams(ip_addr=ip, mac_addr=mac, now=now)
         r = δConn.execute(bound_st)
 
 print("cleaning up old records")
