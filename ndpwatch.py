@@ -12,16 +12,30 @@ MAX_IPV4_LEN = len("255.255.255.255")
 MAX_IPV6_LEN = len("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff")
 MAX_MAC_LEN = len("ff:ff:ff:ff:ff:ff")
 
-hosts = [
-    ("mantas@uk-pf-aukstaiciu9", SshConnector, FreeBsdNeighbourTable),
-    ("mantas@uk-pf-ausros73", SshConnector, FreeBsdNeighbourTable),
-    ("mantas@uk-pf-m18-adm", SshConnector, FreeBsdNeighbourTable),
-    ("mantas@uk-pf-m18-stud", SshConnector, FreeBsdNeighbourTable),
-    ("mantas@uk-pf-maironio7", SshConnector, FreeBsdNeighbourTable),
-    ("mantas@uk-pf-utenio2", SshConnector, FreeBsdNeighbourTable),
-    ("root@uk-untangle", SshConnector, LinuxNeighbourTable),
-    #("root@uk-nas1", SshConnector, SolarisNeighbourTable),
-]
+_connectors = {
+    "local": LocalConnector,
+    "ssh": SshConnector,
+}
+
+_systems = {
+    "linux": LinuxNeighbourTable,
+    "bsd": FreeBsdNeighbourTable,
+    "solaris": SolarisNeighbourTable,
+}
+
+db_url = None
+hosts = []
+
+with open("/home/grawity/lib/arplog.conf") as f:
+    for line in f:
+        if line.startswith("#"):
+            continue
+        k, v = line.strip().split(" = ", 1)
+        if k == "db":
+            db_url = v
+        elif k == "host":
+            host_v, conn_v, sys_v, *rest = v.split(", ")
+            hosts.append((host_v, _connectors[conn_v], _systems[sys_v]))
 
 #δBase = δ.ext.declarative.declarative_base()
 #
@@ -33,9 +47,6 @@ hosts = [
 #    mac_addr    = δ.Column(δ.String(MAX_MAC_LEN), nullable=False)
 #    first_seen  = δ.Column(δ.Integer)
 #    last_seen   = δ.Column(δ.Integer)
-
-with open("/home/grawity/lib/arplog.conf") as f:
-    db_url = f.readline().strip()
 
 δEngine = δ.create_engine(db_url)
 δConn = δEngine.connect()
