@@ -25,6 +25,7 @@ _systems = {
 
 db_url = None
 hosts = []
+max_age_days = 6*30
 
 with open("/home/grawity/lib/arplog.conf") as f:
     for line in f:
@@ -36,6 +37,8 @@ with open("/home/grawity/lib/arplog.conf") as f:
         elif k == "host":
             host_v, conn_v, sys_v, *rest = v.split(", ")
             hosts.append((host_v, _connectors[conn_v], _systems[sys_v]))
+        elif k == "age":
+            max_age_days = int(v)
 
 #δBase = δ.ext.declarative.declarative_base()
 #
@@ -71,8 +74,10 @@ for host, conn_type, nt_type in hosts:
         bound_st = st.bindparams(ip_addr=ip, mac_addr=mac, now=now)
         r = δConn.execute(bound_st)
 
+max_age_secs = max_age_days*86400
+
 print("cleaning up old records")
 st = δ.sql.text("""
         DELETE FROM arplog WHERE last_seen < :then
      """)
-r = δConn.execute(st.bindparams(then=time.time()-(86400*30*6)))
+r = δConn.execute(st.bindparams(then=time.time()-max_age_days))
