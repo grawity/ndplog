@@ -69,7 +69,7 @@ for host, conn_type, nt_type in hosts:
         mac = item["mac"]
         if ip.startswith("fe80"):
             continue
-        print(ip, mac)
+        print("- found", ip, "->", mac)
         #assoc = Assoc(ip_addr=ip, mac_addr=mac, first_seen=now, last_seen=now)
         bound_st = st.bindparams(ip_addr=ip, mac_addr=mac, now=now)
         r = δConn.execute(bound_st)
