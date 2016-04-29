@@ -80,4 +80,4 @@ print("cleaning up old records")
 st = δ.sql.text("""
         DELETE FROM arplog WHERE last_seen < :then
      """)
-r = δConn.execute(st.bindparams(then=time.time()-max_age_days))
+r = δConn.execute(st.bindparams(then=time.time()-max_age_secs))
