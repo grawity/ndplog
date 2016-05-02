@@ -1,3 +1,4 @@
+import ipaddress
 import subprocess
 
 def sh_escape(arg):
@@ -5,6 +6,9 @@ def sh_escape(arg):
 
 def sh_join(args):
     return " ".join(map(sh_escape, args))
+
+def fix_mac(mac):
+    return ":".join(["%02x" % int(i, 16) for i in mac.split(":")])
 
 ## connector
 
@@ -136,3 +140,56 @@ class SolarisNeighbourTable(NeighbourTable):
                         "mac": line[1],
                         "dev": line[0],
                     }
+
+class SnmpNeighbourTable(NeighbourTable):
+    AF_INET = 1
+    AF_INET6 = 2
+
+    def __init__(self, conn, community="public"):
+        self.community = community
+        super().__init__(conn)
+        self._cache = {
+            self.AF_INET: [],
+            self.AF_INET6: [],
+        }
+
+    def _walk(self, mib):
+        with self.conn.popen(["snmpbulkwalk", "-v2c",
+                              "-c%s" % self.community,
+                              "-Onq",
+                              self.conn.host, mib]) as proc:
+            for line in proc.stdout:
+                line = line.strip().decode("utf-8").split()
+                oid = line[0].split(".")
+                value = line[1]
+                yield oid, value
+
+    def get_all(self, only_af=None):
+        if only_af and self._cache[only_af]:
+            yield from self._cache[only_af]
+
+        idx2name = {}
+        for oid, value in self._walk("IF-MIB::ifName"):
+            ifindex = int(oid[12])
+            idx2name[ifindex] = value
+
+        for oid, value in self._walk("IP-MIB::ipNetToPhysicalPhysAddress"):
+            ifindex = int(oid[11])
+            af = int(oid[12])
+            if af not in self._cache:
+                continue
+            addr = bytes([int(c) for c in oid[14:]])
+            item = {
+                "ip": ipaddress.ip_address(addr),
+                "mac": fix_mac(value),
+                "dev": idx2name.get(ifindex, ifindex),
+            }
+            self._cache[af].append(item)
+            if not only_af or only_af == af:
+                yield item
+
+    def get_arp4(self):
+        yield from self.get_all(only_af=self.AF_INET)
+
+    def get_ndp6(self):
+        yield from self.get_all(only_af=self.AF_INET6)
