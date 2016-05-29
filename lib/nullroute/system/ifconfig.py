@@ -1,13 +1,13 @@
 import ipaddress
 import subprocess
 
-def sh_escape(arg):
+def _sh_escape(arg):
     return "'%s'" % arg.replace("'", "'\\''")
 
-def sh_join(args):
-    return " ".join(map(sh_escape, args))
+def _sh_join(args):
+    return " ".join(map(_sh_escape, args))
 
-def fix_mac(mac):
+def _fix_mac(mac):
     return ":".join(["%02x" % int(i, 16) for i in mac.split(":")])
 
 ## connector
@@ -31,7 +31,7 @@ class SshConnector(Connector):
         self.host = host
 
     def popen(self, args):
-        return subprocess.Popen(["ssh", "-q", self.host, sh_join(args)],
+        return subprocess.Popen(["ssh", "-q", self.host, _sh_join(args)],
                                 stdout=subprocess.PIPE)
 
 ## neighbour table
@@ -181,7 +181,7 @@ class SnmpNeighbourTable(NeighbourTable):
             addr = bytes([int(c) for c in oid[14:]])
             item = {
                 "ip": ipaddress.ip_address(addr),
-                "mac": fix_mac(value),
+                "mac": _fix_mac(value),
                 "dev": idx2name.get(ifindex, ifindex),
             }
             self._cache[af].append(item)
