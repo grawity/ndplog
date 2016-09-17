@@ -24,12 +24,13 @@ _systems = {
     "solaris": SolarisNeighbourTable,
 }
 
+config = Env.find_config_file("ndpwatch.conf")
 db_url = None
 hosts = []
 max_age_days = 6*30
 mode = "all"
 
-with open("/home/grawity/lib/arplog.conf") as f:
+with open(config, "r") as f:
     for line in f:
         if line.startswith("#"):
             continue
