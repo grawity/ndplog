@@ -40,17 +40,6 @@ with open("/home/grawity/lib/arplog.conf") as f:
         elif k == "age":
             max_age_days = int(v)
 
-#δBase = δ.ext.declarative.declarative_base()
-#
-#class Assoc(δBase):
-#    __tablename__ = "arplog"
-#
-#    id          = δ.Column(δ.Integer, δ.Sequence("arplog_seq"), primary_key=True)
-#    ip_addr     = δ.Column(δ.String(MAX_IPV6_LEN), nullable=False)
-#    mac_addr    = δ.Column(δ.String(MAX_MAC_LEN), nullable=False)
-#    first_seen  = δ.Column(δ.Integer)
-#    last_seen   = δ.Column(δ.Integer)
-
 δEngine = δ.create_engine(db_url)
 δConn = δEngine.connect()
 
@@ -67,10 +56,9 @@ for host, conn_type, nt_type in hosts:
     for item in nt.get_ndp6():
         ip = item["ip"].split("%")[0]
         mac = item["mac"]
-        if ip.startswith("fe80"):
+        if ip.startswith("fe80:"):
             continue
         print("- found", ip, "->", mac)
-        #assoc = Assoc(ip_addr=ip, mac_addr=mac, first_seen=now, last_seen=now)
         bound_st = st.bindparams(ip_addr=ip, mac_addr=mac, now=now)
         r = δConn.execute(bound_st)
 
