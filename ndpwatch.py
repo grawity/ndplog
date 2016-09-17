@@ -53,7 +53,7 @@ for host, conn_type, nt_type in hosts:
     print("connecting to", host)
     nt = nt_type(conn_type(host))
     now = time.time()
-    for item in nt.get_ndp6():
+    for item in nt.get_all():
         ip = item["ip"].split("%")[0]
         mac = item["mac"]
         if ip.startswith("fe80:"):
