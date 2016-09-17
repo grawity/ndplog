@@ -1,10 +1,7 @@
 #!/usr/bin/env python3
-from ipaddress import *
 from nullroute.core import *
 from nullroute.system.ifconfig import *
-from pprint import pprint
 import sqlalchemy as δ
-import sqlalchemy.orm
 import time
 
 _connectors = {
