@@ -7,12 +7,6 @@ import sqlalchemy as δ
 import sqlalchemy.orm
 import time
 
-## main
-
-MAX_IPV4_LEN = len("255.255.255.255")
-MAX_IPV6_LEN = len("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff")
-MAX_MAC_LEN = len("ff:ff:ff:ff:ff:ff")
-
 _connectors = {
     "local": LocalConnector,
     "ssh": SshConnector,
