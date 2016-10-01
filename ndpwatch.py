@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# ndpwatch - poll ARP & ND caches and store to database
+# (c) 2016 Mantas Mikulėnas <grawity@gmail.com>
+# Released under the MIT License (dist/LICENSE.mit)
 from nullroute.core import *
 from nullroute.system.ifconfig import *
 import sqlalchemy as δ
