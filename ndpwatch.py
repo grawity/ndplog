@@ -63,16 +63,21 @@ else:
 
 for host, conn_type, nt_type in hosts:
     print("connecting to", host)
-    nt = nt_type(conn_type(host))
-    now = time.time()
-    for item in func(nt):
-        ip = item["ip"].split("%")[0]
-        mac = item["mac"]
-        if ip.startswith("fe80:"):
-            continue
-        print("- found", ip, "->", mac)
-        bound_st = st.bindparams(ip_addr=ip, mac_addr=mac, now=now)
-        r = δConn.execute(bound_st)
+    try:
+        nt = nt_type(conn_type(host))
+        now = time.time()
+        for item in func(nt):
+            ip = item["ip"].split("%")[0]
+            mac = item["mac"]
+            if ip.startswith("fe80:"):
+                continue
+            print("- found", ip, "->", mac)
+            bound_st = st.bindparams(ip_addr=ip, mac_addr=mac, now=now)
+            r = δConn.execute(bound_st)
+    except IOError as e:
+        Core.err("connection to %r failed: %r" % (host, e))
+
+Core.exit_if_errors()
 
 max_age_secs = max_age_days*86400
 
