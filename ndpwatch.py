@@ -23,6 +23,9 @@ db_url = None
 hosts = []
 max_age_days = 6*30
 mode = "all"
+verbose = False
+n_arp = 0
+n_ndp = 0
 
 with open(config, "r") as f:
     for line in f:
@@ -62,7 +65,7 @@ else:
     func = lambda nt: nt.get_all()
 
 for host, conn_type, nt_type in hosts:
-    print("connecting to", host)
+    Core.say("connecting to %s" % host)
     try:
         nt = nt_type(conn_type(host))
         now = time.time()
@@ -71,17 +74,23 @@ for host, conn_type, nt_type in hosts:
             mac = item["mac"]
             if ip.startswith("fe80:"):
                 continue
-            print("- found", ip, "->", mac)
+            if verbose:
+                print("- found", ip, "->", mac)
+            if ":" in ip:
+                n_ndp += 1
+            else:
+                n_arp += 1
             bound_st = st.bindparams(ip_addr=ip, mac_addr=mac, now=now)
             r = δConn.execute(bound_st)
     except IOError as e:
         Core.err("connection to %r failed: %r" % (host, e))
+    Core.say(" - logged %d ARP entries, %d NDP entries" % (n_arp, n_ndp))
 
 Core.exit_if_errors()
 
 max_age_secs = max_age_days*86400
 
-print("cleaning up old records")
+Core.say("cleaning up old records")
 st = δ.sql.text("""
         DELETE FROM arplog WHERE last_seen < :then
      """)
