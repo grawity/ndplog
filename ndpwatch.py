@@ -24,8 +24,6 @@ hosts = []
 max_age_days = 6*30
 mode = "all"
 verbose = False
-n_arp = 0
-n_ndp = 0
 
 with open(config, "r") as f:
     for line in f:
@@ -66,6 +64,7 @@ else:
 
 for host, conn_type, nt_type in hosts:
     Core.say("connecting to %s" % host)
+    n_arp = n_ndp = 0
     try:
         nt = nt_type(conn_type(host))
         now = time.time()
