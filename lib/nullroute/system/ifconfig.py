@@ -38,14 +38,18 @@ class SshConnector(Connector):
 
 class NeighbourTable(object):
     def __init__(self, conn):
-        assert(conn.popen)
         self.conn = conn
 
     def get_all(self):
         yield from self.get_arp4()
         yield from self.get_ndp6()
 
-class LinuxNeighbourTable(NeighbourTable):
+class SshNeighbourTable(NeighbourTable):
+    def __init__(self, conn):
+        assert(conn.popen)
+        super().__init__(conn)
+
+class LinuxNeighbourTable(SshNeighbourTable):
     def _parse_neigh(self, io):
         for line in io:
             line = line.strip().decode("utf-8").split()
@@ -82,7 +86,7 @@ class LinuxNeighbourTable(NeighbourTable):
             if proc.wait() != 0:
                 raise IOError("command %r returned %r" % (proc.args, proc.returncode))
 
-class FreeBsdNeighbourTable(NeighbourTable):
+class FreeBsdNeighbourTable(SshNeighbourTable):
     def get_arp4(self):
         with self.conn.popen(["arp", "-na"]) as proc:
             for line in proc.stdout:
@@ -114,7 +118,7 @@ class FreeBsdNeighbourTable(NeighbourTable):
             if proc.wait() != 0:
                 raise IOError("command %r returned %r" % (proc.args, proc.returncode))
 
-class SolarisNeighbourTable(NeighbourTable):
+class SolarisNeighbourTable(SshNeighbourTable):
     def get_arp4(self):
         with self.conn.popen(["arp", "-na"]) as proc:
             header = True
@@ -152,6 +156,35 @@ class SolarisNeighbourTable(NeighbourTable):
                     }
             if proc.wait() != 0:
                 raise IOError("command %r returned %r" % (proc.args, proc.returncode))
+
+class RouterOsNeighbourTable(NeighbourTable):
+    def __init__(self, conn, username="admin", password=""):
+        self.username = username
+        self.password = password
+        super().__init__(conn)
+        self.api = self._connect()
+
+    def _connect(self):
+        import tikapy
+        api = tikapy.TikapySslClient(self.conn.host)
+        api.login(self.username, self.password)
+        return api
+
+    def get_arp4(self):
+        for i in self.api.talk(["/ip/arp/getall"]).values():
+            yield {
+                "ip": i["address"],
+                "mac": i["mac-address"],
+                "dev": i["interface"],
+            }
+
+    def get_ndp6(self):
+        for i in self.api.talk(["/ipv6/neighbor/getall"]).values():
+            yield {
+                "ip": i["address"],
+                "mac": i["mac-address"],
+                "dev": i["interface"],
+            }
 
 class SnmpNeighbourTable(NeighbourTable):
     AF_INET = 1
