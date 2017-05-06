@@ -159,13 +159,22 @@ class SolarisNeighbourTable(SshNeighbourTable):
 
 class RouterOsNeighbourTable(NeighbourTable):
     def __init__(self, conn, username="admin", password=""):
+        import tikapy
+
         self.username = username
         self.password = password
+
+        if "@" in self.conn.host:
+            cred, self.conn.host = self.conn.host.rsplit("@", 1)
+            if ":" in cred:
+                self.username, self.password = cred.split(":", 1)
+            else:
+                self.username = user
+
         super().__init__(conn)
         self.api = self._connect()
 
     def _connect(self):
-        import tikapy
         api = tikapy.TikapySslClient(self.conn.host)
         api.login(self.username, self.password)
         return api
