@@ -9,6 +9,7 @@ import time
 
 _connectors = {
     "local": LocalConnector,
+    "none": NullConnector,
     "ssh": SshConnector,
 }
 
@@ -16,6 +17,7 @@ _systems = {
     "linux": LinuxNeighbourTable,
     "bsd": FreeBsdNeighbourTable,
     "solaris": SolarisNeighbourTable,
+    "routeros": RouterOsNeighbourTable,
 }
 
 config = Env.find_config_file("ndpwatch.conf")
