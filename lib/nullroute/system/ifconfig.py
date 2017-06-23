@@ -182,6 +182,8 @@ class RouterOsNeighbourTable(NeighbourTable):
 
     def get_arp4(self):
         for i in self.api.talk(["/ip/arp/getall"]).values():
+            if "mac-address" not in i:
+                continue
             yield {
                 "ip": i["address"],
                 "mac": i["mac-address"],
@@ -190,6 +192,8 @@ class RouterOsNeighbourTable(NeighbourTable):
 
     def get_ndp6(self):
         for i in self.api.talk(["/ipv6/neighbor/getall"]).values():
+            if "mac-address" not in i:
+                continue
             yield {
                 "ip": i["address"],
                 "mac": i["mac-address"],
