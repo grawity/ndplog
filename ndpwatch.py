@@ -82,7 +82,7 @@ for host, conn_type, user_pass, nt_type in hosts:
         now = time.time()
         for item in func(nt):
             ip = item["ip"].split("%")[0]
-            mac = item["mac"]
+            mac = item["mac"].lower()
             if ip.startswith("fe80:"):
                 continue
             if verbose:
