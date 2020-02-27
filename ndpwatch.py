@@ -61,6 +61,7 @@ conn = mysql.connector.connect(host=m.group(3),
                                user=m.group(1),
                                password=m.group(2),
                                database=m.group(4))
+conn.autocommit = False
 
 if mode == "ipv4":
     func = lambda nt: nt.get_arp4()
@@ -100,6 +101,7 @@ for host, conn_type, user_pass, nt_type in hosts:
         Core.err("connection to %r failed: %r" % (host, e))
     Core.say(" - logged %d ARP entries, %d NDP entries" % (n_arp, n_ndp))
 
+conn.commit()
 Core.exit_if_errors()
 
 max_age_secs = max_age_days*86400
@@ -110,5 +112,5 @@ cursor = conn.cursor()
 cursor.execute("DELETE FROM arplog WHERE last_seen < %(then)s",
                {"then": time.time() - max_age_secs})
 
-conn.close()
+conn.commit()
 Core.fini()
