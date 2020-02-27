@@ -2,9 +2,10 @@
 # ndpwatch - poll ARP & ND caches and store to database
 # (c) 2016 Mantas Mikulėnas <grawity@gmail.com>
 # Released under the MIT License (dist/LICENSE.mit)
+import mysql.connector
 from nullroute.core import *
 from nullroute.system.ifconfig import *
-import sqlalchemy as δ
+import re
 import time
 
 _connectors = {
@@ -53,14 +54,13 @@ with open(config, "r") as f:
 if not db_url:
     Core.die("database URL not configured")
 
-δEngine = δ.create_engine(db_url)
-δConn = δEngine.connect()
-
-st = δ.sql.text("""
-        INSERT INTO arplog (ip_addr, mac_addr, first_seen, last_seen)
-        VALUES (:ip_addr, :mac_addr, :now, :now)
-        ON DUPLICATE KEY UPDATE last_seen=:now
-     """)
+m = re.match(r"^mysql://([^:]+):([^@]+)@([^/]+)/(.+)", db_url)
+if not m:
+    Core.die("unrecognized database URL %r", db_url)
+conn = mysql.connector.connect(host=m.group(3),
+                               user=m.group(1),
+                               password=m.group(2),
+                               database=m.group(4))
 
 if mode == "ipv4":
     func = lambda nt: nt.get_arp4()
@@ -91,8 +91,11 @@ for host, conn_type, user_pass, nt_type in hosts:
                 n_ndp += 1
             else:
                 n_arp += 1
-            bound_st = st.bindparams(ip_addr=ip, mac_addr=mac, now=now)
-            r = δConn.execute(bound_st)
+            cursor = conn.cursor()
+            cursor.execute("""INSERT INTO arplog (ip_addr, mac_addr, first_seen, last_seen)
+                              VALUES (%(ip_addr)s, %(mac_addr)s, %(now)s, %(now)s)
+                              ON DUPLICATE KEY UPDATE last_seen=%(now)s""",
+                           {"ip_addr": ip, "mac_addr": mac, "now": now})
     except IOError as e:
         Core.err("connection to %r failed: %r" % (host, e))
     Core.say(" - logged %d ARP entries, %d NDP entries" % (n_arp, n_ndp))
@@ -102,7 +105,10 @@ Core.exit_if_errors()
 max_age_secs = max_age_days*86400
 
 Core.say("cleaning up old records")
-st = δ.sql.text("""
-        DELETE FROM arplog WHERE last_seen < :then
-     """)
-r = δConn.execute(st.bindparams(then=time.time()-max_age_secs))
+
+cursor = conn.cursor()
+cursor.execute("DELETE FROM arplog WHERE last_seen < %(then)s",
+               {"then": time.time() - max_age_secs})
+
+conn.close()
+Core.fini()
