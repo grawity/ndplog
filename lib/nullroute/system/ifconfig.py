@@ -31,7 +31,7 @@ class SshConnector(Connector):
         self.host = host
 
     def popen(self, args):
-        return subprocess.Popen(["ssh", "-q", self.host, _sh_join(args)],
+        return subprocess.Popen(["ssh", self.host, _sh_join(args)],
                                 stdout=subprocess.PIPE)
 
 ## neighbour table
