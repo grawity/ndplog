@@ -84,6 +84,7 @@ for host, conn_type, user_pass, nt_type in hosts:
             ip = item["ip"].split("%")[0]
             mac = item["mac"].lower()
             if ip.startswith("fe80:"):
+                Core.trace("skipping link-local ip=%r mac=%r", ip, mac)
                 continue
             if verbose:
                 print("- found", ip, "->", mac)
@@ -92,12 +93,13 @@ for host, conn_type, user_pass, nt_type in hosts:
             else:
                 n_arp += 1
             cursor = conn.cursor()
+            Core.trace("inserting ip=%r mac=%r now=%r", ip, mac, now)
             cursor.execute("""INSERT INTO arplog (ip_addr, mac_addr, first_seen, last_seen)
                               VALUES (%(ip_addr)s, %(mac_addr)s, %(now)s, %(now)s)
                               ON DUPLICATE KEY UPDATE last_seen=%(now)s""",
                            {"ip_addr": ip, "mac_addr": mac, "now": now})
     except IOError as e:
-        Core.err("connection to %r failed: %r" % (host, e))
+        Core.err("connection to %r failed: %r", host, e)
     Core.say(" - logged %d ARP entries, %d NDP entries" % (n_arp, n_ndp))
 
 Core.exit_if_errors()
