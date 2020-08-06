@@ -380,6 +380,7 @@ for host, conn_type, user_pass, nt_type in hosts:
         Core.err("connection to %r failed: %r", host, e)
     Core.say(" - logged %d ARP entries, %d NDP entries" % (n_arp, n_ndp))
 
+conn.commit()
 Core.exit_if_errors()
 
 max_age_secs = max_age_days*86400
