@@ -112,5 +112,6 @@ cursor = conn.cursor()
 cursor.execute("DELETE FROM arplog WHERE last_seen < %(then)s",
                {"then": time.time() - max_age_secs})
 
+conn.commit()
 conn.close()
 Core.fini()
