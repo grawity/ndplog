@@ -1,4 +1,5 @@
 import ipaddress
+import json
 import subprocess
 
 def _sh_escape(arg):
@@ -82,6 +83,32 @@ class LinuxNeighbourTable(SshNeighbourTable):
 
     def get_ndp6(self):
         with self.conn.popen(["ip", "-6", "neigh"]) as proc:
+            yield from self._parse_neigh(proc.stdout)
+            if proc.wait() != 0:
+                raise IOError("command %r returned %r" % (proc.args, proc.returncode))
+
+class LinuxNeighbourTableNew(SshNeighbourTable):
+    def _parse_neigh(self, io):
+        data = json.load(io)
+        for row in data:
+            ip = row.get("dst")
+            mac = row.get("lladdr")
+            dev = row.get("dev")
+            if ip and mac:
+                yield {
+                    "ip": ip,
+                    "mac": mac,
+                    "dev": dev,
+                }
+
+    def get_arp4(self):
+        with self.conn.popen(["ip", "-json", "-4", "neigh"]) as proc:
+            yield from self._parse_neigh(proc.stdout)
+            if proc.wait() != 0:
+                raise IOError("command %r returned %r" % (proc.args, proc.returncode))
+
+    def get_ndp6(self):
+        with self.conn.popen(["ip", "-json", "-6", "neigh"]) as proc:
             yield from self._parse_neigh(proc.stdout)
             if proc.wait() != 0:
                 raise IOError("command %r returned %r" % (proc.args, proc.returncode))
