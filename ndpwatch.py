@@ -19,48 +19,26 @@ def _sh_join(args):
 def _fix_mac(mac):
     return ":".join(["%02x" % int(i, 16) for i in mac.split(":")])
 
-class Connector(object):
-    pass
-
-class NullConnector(Connector):
-    def __init__(self, host):
-        self.host = host
-
-class LocalConnector(Connector):
-    def __init__(self, host=None):
-        self.host = host
-
-    def popen(self, args):
-        return subprocess.Popen(args, stdout=subprocess.PIPE)
-
-class SshConnector(Connector):
-    def __init__(self, host):
-        self.host = host
-
-    def popen(self, args):
-        return subprocess.Popen(["ssh", self.host, _sh_join(args)],
-                                stdout=subprocess.PIPE)
-
-_connectors = {
-    "local": LocalConnector,
-    "none": NullConnector,
-    "ssh": SshConnector,
-}
-
-class NeighbourTable(object):
-    def __init__(self, conn):
-        self.conn = conn
-
+class NeighbourTable():
     def get_all(self):
         yield from self.get_arp4()
         yield from self.get_ndp6()
 
-class SshNeighbourTable(NeighbourTable):
-    def __init__(self, conn):
-        assert(conn.popen)
-        super().__init__(conn)
+class _SshNeighbourTable(NeighbourTable):
+    def __init__(self, host=None):
+        if host and host != "-":
+            self.host = host
+        else:
+            self.host = None
 
-class LinuxNeighbourTable(SshNeighbourTable):
+    def _popen(self, args):
+        if self.host:
+            return subprocess.Popen(["ssh", self.host, _sh_join(args)],
+                                    stdout=subprocess.PIPE)
+        else:
+            return subprocess.Popen(args, stdout=subprocess.PIPE)
+
+class LinuxNeighbourTable(_SshNeighbourTable):
     def _parse_neigh(self, io):
         for line in io:
             line = line.strip().decode("utf-8").split()
@@ -86,18 +64,18 @@ class LinuxNeighbourTable(SshNeighbourTable):
                 }
 
     def get_arp4(self):
-        with self.conn.popen(["ip", "-4", "neigh"]) as proc:
+        with self._popen(["ip", "-4", "neigh"]) as proc:
             yield from self._parse_neigh(proc.stdout)
             if proc.wait() != 0:
                 raise IOError("command %r returned %r" % (proc.args, proc.returncode))
 
     def get_ndp6(self):
-        with self.conn.popen(["ip", "-6", "neigh"]) as proc:
+        with self._popen(["ip", "-6", "neigh"]) as proc:
             yield from self._parse_neigh(proc.stdout)
             if proc.wait() != 0:
                 raise IOError("command %r returned %r" % (proc.args, proc.returncode))
 
-class LinuxNeighbourTableNew(SshNeighbourTable):
+class LinuxNeighbourTableNew(_SshNeighbourTable):
     def _parse_neigh(self, io):
         data = json.load(io)
         for row in data:
@@ -112,20 +90,20 @@ class LinuxNeighbourTableNew(SshNeighbourTable):
                 }
 
     def get_arp4(self):
-        with self.conn.popen(["ip", "-json", "-4", "neigh"]) as proc:
+        with self._popen(["ip", "-json", "-4", "neigh"]) as proc:
             yield from self._parse_neigh(proc.stdout)
             if proc.wait() != 0:
                 raise IOError("command %r returned %r" % (proc.args, proc.returncode))
 
     def get_ndp6(self):
-        with self.conn.popen(["ip", "-json", "-6", "neigh"]) as proc:
+        with self._popen(["ip", "-json", "-6", "neigh"]) as proc:
             yield from self._parse_neigh(proc.stdout)
             if proc.wait() != 0:
                 raise IOError("command %r returned %r" % (proc.args, proc.returncode))
 
-class FreeBsdNeighbourTable(SshNeighbourTable):
+class FreeBsdNeighbourTable(_SshNeighbourTable):
     def get_arp4(self):
-        with self.conn.popen(["arp", "-na"]) as proc:
+        with self._popen(["arp", "-na"]) as proc:
             for line in proc.stdout:
                 line = line.strip().decode("utf-8").split()
                 if line[3] == "(incomplete)":
@@ -142,7 +120,7 @@ class FreeBsdNeighbourTable(SshNeighbourTable):
                 raise IOError("command %r returned %r" % (proc.args, proc.returncode))
 
     def get_ndp6(self):
-        with self.conn.popen(["ndp", "-na"]) as proc:
+        with self._popen(["ndp", "-na"]) as proc:
             for line in proc.stdout:
                 line = line.strip().decode("utf-8").split()
                 if line[0] != "Neighbor":
@@ -155,9 +133,9 @@ class FreeBsdNeighbourTable(SshNeighbourTable):
             if proc.wait() != 0:
                 raise IOError("command %r returned %r" % (proc.args, proc.returncode))
 
-class SolarisNeighbourTable(SshNeighbourTable):
+class SolarisNeighbourTable(_SshNeighbourTable):
     def get_arp4(self):
-        with self.conn.popen(["arp", "-na"]) as proc:
+        with self._popen(["arp", "-na"]) as proc:
             header = True
             for line in proc.stdout:
                 line = line.strip().decode("utf-8").split()
@@ -176,7 +154,7 @@ class SolarisNeighbourTable(SshNeighbourTable):
                 raise IOError("command %r returned %r" % (proc.args, proc.returncode))
 
     def get_ndp6(self):
-        with self.conn.popen(["netstat", "-npf", "inet6"]) as proc:
+        with self._popen(["netstat", "-npf", "inet6"]) as proc:
             header = True
             for line in proc.stdout:
                 line = line.strip().decode("utf-8").split()
@@ -195,14 +173,13 @@ class SolarisNeighbourTable(SshNeighbourTable):
                 raise IOError("command %r returned %r" % (proc.args, proc.returncode))
 
 class RouterOsNeighbourTable(NeighbourTable):
-    def __init__(self, conn, username="admin", password=""):
+    def __init__(self, host, username="admin", password=""):
+        self.host = host
         self.username = username
         self.password = password
 
-        super().__init__(conn)
-
-        if "@" in self.conn.host:
-            cred, self.conn.host = self.conn.host.rsplit("@", 1)
+        if "@" in self.host:
+            cred, self.host = self.host.rsplit("@", 1)
             if ":" in cred:
                 self.username, self.password = cred.split(":", 1)
             else:
@@ -213,7 +190,7 @@ class RouterOsNeighbourTable(NeighbourTable):
     def _connect(self):
         import tikapy
 
-        api = tikapy.TikapySslClient(self.conn.host)
+        api = tikapy.TikapySslClient(self.host)
         api.login(self.username, self.password)
         return api
 
@@ -241,19 +218,19 @@ class SnmpNeighbourTable(NeighbourTable):
     AF_INET = 1
     AF_INET6 = 2
 
-    def __init__(self, conn, community="public"):
+    def __init__(self, host, community="public"):
+        self.host = host
         self.community = community
-        super().__init__(conn)
         self._cache = {
             self.AF_INET: [],
             self.AF_INET6: [],
         }
 
     def _walk(self, mib):
-        with self.conn.popen(["snmpbulkwalk", "-v2c",
-                              "-c%s" % self.community,
-                              "-Onq",
-                              self.conn.host, mib]) as proc:
+        with self._popen(["snmpbulkwalk", "-v2c",
+                          "-c%s" % self.community,
+                          "-Onq",
+                          self.host, mib]) as proc:
             for line in proc.stdout:
                 line = line.strip().decode("utf-8").split()
                 oid = line[0].split(".")
@@ -314,13 +291,8 @@ with open(config, "r") as f:
         if k == "db":
             db_url = v
         elif k == "host":
-            v = v.split(",")
-            v = [_.strip() for _ in v]
-            host_v, conn_v, user_v, pass_v, sys_v, *rest = v
-            hosts.append((host_v,
-                          _connectors[conn_v],
-                          [user_v, pass_v],
-                          _systems[sys_v]))
+            v = [_.strip() for _ in v.split(",")]
+            hosts.append(v)
         elif k == "age":
             max_age_days = int(v)
         elif k == "mode":
@@ -347,16 +319,11 @@ elif mode == "ipv6":
 else:
     func = lambda nt: nt.get_all()
 
-for host, conn_type, user_pass, nt_type in hosts:
+for conn_type, host, *conn_args in hosts:
     Core.say("connecting to %s" % host)
     n_arp = n_ndp = 0
     try:
-        if user_pass[0] != "-":
-            if user_pass[1] != "-":
-                host = "%s:%s@%s" % (user_pass[0], user_pass[1], host)
-            else:
-                host = "%s@%s" % (user_pass[0], host)
-        nt = nt_type(conn_type(host))
+        nt = _systems[conn_type](host, *conn_args)
         now = time.time()
         for item in func(nt):
             ip = item["ip"].split("%")[0]
