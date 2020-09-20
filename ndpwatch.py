@@ -276,7 +276,7 @@ _systems = {
     "routeros": RouterOsNeighbourTable,
 }
 
-config = Env.find_config_file("ndpwatch.json")
+config = Env.find_config_file("ndpwatch.conf")
 db_url = None
 hosts = []
 max_age_days = 6*30
@@ -284,17 +284,22 @@ mode = "all"
 verbose = False
 
 with open(config, "r") as f:
-    data = json.load(f)
-    if "db" in data:
-        db_url = data["db"]
-    if "max_age" in data:
-        max_age_days = data["max_age"]
-    if "hosts" in data:
-        hosts = data["hosts"]
-    if "mode" in data:
-        mode = data["family"]
-        if mode not in {"ipv4", "ipv6", "all", "both"}:
-            Core.die("config parameter %r has unrecognized value %r" % ("family", mode))
+    for line in f:
+        if line.startswith("#"):
+            continue
+        k, v = line.strip().split(" = ", 1)
+        if k == "db":
+            db_url = v
+        elif k == "host":
+            v = [_.strip() for _ in v.split(",")]
+            hosts.append(v)
+        elif k == "age":
+            max_age_days = int(v)
+        elif k == "mode":
+            if v in {"ipv4", "ipv6", "all", "both"}:
+                mode = v
+            else:
+                Core.die("config parameter %r has unrecognized value %r" % (k, v))
 
 if not db_url:
     Core.die("database URL not configured")
@@ -314,15 +319,11 @@ elif mode == "ipv6":
 else:
     func = lambda nt: nt.get_all()
 
-for h in hosts:
-    host = h.get("host") or "<local>"
-    conn_type = h["type"]
-    del h["type"]
-
+for conn_type, host, *conn_args in hosts:
     Core.say("connecting to %s" % host)
     n_arp = n_ndp = 0
     try:
-        nt = _systems[conn_type](**h)
+        nt = _systems[conn_type](host, *conn_args)
         now = time.time()
         for item in func(nt):
             ip = item["ip"].split("%")[0]
