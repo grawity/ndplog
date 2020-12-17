@@ -295,11 +295,6 @@ with open(config, "r") as f:
             hosts.append(v)
         elif k == "age":
             max_age_days = int(v)
-        elif k == "mode":
-            if v in {"ipv4", "ipv6", "all", "both"}:
-                mode = v
-            else:
-                Core.die("config parameter %r has unrecognized value %r" % (k, v))
 
 if not db_url:
     Core.die("database URL not configured")
@@ -312,20 +307,13 @@ conn = mysql.connector.connect(host=m.group(3),
                                password=m.group(2),
                                database=m.group(4))
 
-if mode == "ipv4":
-    func = lambda nt: nt.get_arp4()
-elif mode == "ipv6":
-    func = lambda nt: nt.get_ndp6()
-else:
-    func = lambda nt: nt.get_all()
-
 for conn_type, host, *conn_args in hosts:
     Core.say("connecting to %s" % host)
     n_arp = n_ndp = 0
     try:
         nt = _systems[conn_type](host, *conn_args)
         now = time.time()
-        for item in func(nt):
+        for item in nt.get_all():
             ip = item["ip"].split("%")[0]
             mac = item["mac"].lower()
             if ip.startswith("fe80:"):
