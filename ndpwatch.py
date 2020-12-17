@@ -5,7 +5,7 @@
 import ipaddress
 import json
 import mysql.connector
-from nullroute.core import *
+from nullroute.core import Core, Env
 import re
 import time
 import subprocess
