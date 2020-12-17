@@ -5,11 +5,22 @@
 import ipaddress
 import json
 import mysql.connector
-from nullroute.core import Core
 import os
 import re
 import time
+import sys
 import subprocess
+
+# Log functions (which should start doing syslog one day)
+
+def log_debug(msg):
+    pass
+
+def log_info(msg):
+    print(msg, file=sys.stdout, flush=True)
+
+def log_error(msg):
+    print(msg, file=sys.stderr, flush=True)
 
 # String utility functions
 
@@ -300,18 +311,22 @@ with open(config, "r") as f:
             max_age_days = int(v)
 
 if not db_url:
-    Core.die("database URL not configured")
+    log_error("database URL not configured")
+    exit(2)
 
 m = re.match(r"^mysql://([^:]+):([^@]+)@([^/]+)/(.+)", db_url)
 if not m:
-    Core.die("unrecognized database URL %r", db_url)
+    log_error("unrecognized database URL %r" % db_url)
+    exit(2)
+
 conn = mysql.connector.connect(host=m.group(3),
                                user=m.group(1),
                                password=m.group(2),
                                database=m.group(4))
 
+errors = 0
 for conn_type, host, *conn_args in hosts:
-    Core.say("connecting to %s" % host)
+    log_info("connecting to %s [%s]" % (conn_type, host))
     n_arp = n_ndp = 0
     try:
         nt = _systems[conn_type](host, *conn_args)
@@ -320,7 +335,7 @@ for conn_type, host, *conn_args in hosts:
             ip = item["ip"].split("%")[0]
             mac = item["mac"].lower()
             if ip.startswith("fe80:"):
-                Core.trace("skipping link-local ip=%r mac=%r", ip, mac)
+                log_debug("skipping link-local ip=%r mac=%r" % (ip, mac))
                 continue
             if verbose:
                 print("- found", ip, "->", mac)
@@ -329,26 +344,27 @@ for conn_type, host, *conn_args in hosts:
             else:
                 n_arp += 1
             cursor = conn.cursor()
-            Core.trace("inserting ip=%r mac=%r now=%r", ip, mac, now)
+            log_debug("inserting ip=%r mac=%r now=%r" % (ip, mac, now))
             cursor.execute("""INSERT INTO arplog (ip_addr, mac_addr, first_seen, last_seen)
                               VALUES (%(ip_addr)s, %(mac_addr)s, %(now)s, %(now)s)
                               ON DUPLICATE KEY UPDATE last_seen=%(now)s""",
                            {"ip_addr": ip, "mac_addr": mac, "now": now})
     except IOError as e:
-        Core.err("connection to %r failed: %r", host, e)
-    Core.say(" - logged %d ARP entries, %d NDP entries" % (n_arp, n_ndp))
-
+        log_error("connection to %r failed: %r" % (host, e))
+        errors += 1
+    log_info(" - logged %d ARP entries, %d NDP entries" % (n_arp, n_ndp))
 conn.commit()
-Core.exit_if_errors()
 
+if errors:
+    log_error("some hosts couldn't be scanned, exiting without cleanup")
+    exit(1)
+
+log_info("cleaning up records more than %d days old" % max_age_days)
 max_age_secs = max_age_days*86400
-
-Core.say("cleaning up old records")
-
 cursor = conn.cursor()
 cursor.execute("DELETE FROM arplog WHERE last_seen < %(then)s",
                {"then": time.time() - max_age_secs})
-
 conn.commit()
+
+log_info("finished")
 conn.close()
-Core.fini()
