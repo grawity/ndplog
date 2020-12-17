@@ -5,7 +5,8 @@
 import ipaddress
 import json
 import mysql.connector
-from nullroute.core import Core, Env
+from nullroute.core import Core
+import os
 import re
 import time
 import subprocess
@@ -276,7 +277,7 @@ _systems = {
     "routeros": RouterOsNeighbourTable,
 }
 
-config = Env.find_config_file("ndpwatch.conf")
+config = os.path.expanduser("~/.config/nullroute.eu.org/ndpwatch.conf")
 db_url = None
 hosts = []
 max_age_days = 6*30
