@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # ndpwatch - poll ARP & ND caches and store to database
-# (c) 2016 Mantas Mikulėnas <grawity@gmail.com>
+# (c) 2016-2020 Mantas Mikulėnas <grawity@gmail.com>
 # Released under the MIT License (dist/LICENSE.mit)
 import ipaddress
 import json
@@ -11,13 +11,15 @@ import re
 import time
 import subprocess
 
-def _sh_escape(arg):
+# String utility functions
+
+def shell_escape(arg):
     return "'%s'" % arg.replace("'", "'\\''")
 
-def _sh_join(args):
-    return " ".join(map(_sh_escape, args))
+def shell_join(args):
+    return " ".join(map(shell_escape, args))
 
-def _fix_mac(mac):
+def canon_mac(mac):
     return ":".join(["%02x" % int(i, 16) for i in mac.split(":")])
 
 class NeighbourTable():
@@ -34,7 +36,7 @@ class _SshNeighbourTable(NeighbourTable):
 
     def _popen(self, args):
         if self.host:
-            return subprocess.Popen(["ssh", self.host, _sh_join(args)],
+            return subprocess.Popen(["ssh", self.host, shell_join(args)],
                                     stdout=subprocess.PIPE)
         else:
             return subprocess.Popen(args, stdout=subprocess.PIPE)
@@ -257,7 +259,7 @@ class SnmpNeighbourTable(NeighbourTable):
             addr = bytes([int(c) for c in oid[14:]])
             item = {
                 "ip": ipaddress.ip_address(addr),
-                "mac": _fix_mac(value),
+                "mac": canon_mac(value),
                 "dev": idx2name.get(ifindex, ifindex),
             }
             self._cache[af].append(item)
