@@ -2,6 +2,7 @@
 # ndpwatch - poll ARP & ND caches and store to database
 # (c) 2016-2020 Mantas Mikulėnas <grawity@gmail.com>
 # Released under the MIT License (dist/LICENSE.mit)
+import argparse
 import ipaddress
 import json
 import os
@@ -294,14 +295,18 @@ _systems = {
     "routeros": RouterOsNeighbourTable,
 }
 
-configs = [
-    os.path.expanduser("~/.config/nullroute.eu.org/ndpwatch.conf"),
-    "/etc/ndpwatch.conf",
-]
+parser = argparse.ArgumentParser()
+parser.add_argument("-c", "--config", help="path to ndpwatch.conf")
+args = parser.parse_args()
 
-for config in configs:
-    if os.path.exists(config):
-        break
+if args.config:
+    config = args.config
+else:
+    configs = [os.path.expanduser("~/.config/nullroute.eu.org/ndpwatch.conf"),
+               "/etc/ndpwatch.conf"]
+    for config in configs:
+        if os.path.exists(config):
+            break
 
 db_url = None
 hosts = []
