@@ -328,12 +328,12 @@ with open(config, "r") as f:
             max_age_days = int(v)
 
 if not db_url:
-    log_error("database URL not configured")
+    log_error("Database URL not configured")
     exit(2)
 
 m = re.match(r"^mysql://([^:]+):([^@]+)@([^/]+)/(.+)", db_url)
 if not m:
-    log_error("unrecognized database URL %r" % db_url)
+    log_error("Unrecognized database URL %r" % db_url)
     exit(2)
 
 conn = MySQLdb.connect(host=m.group(3),
@@ -343,7 +343,7 @@ conn = MySQLdb.connect(host=m.group(3),
 
 errors = 0
 for conn_type, host, *conn_args in hosts:
-    log_info("connecting to %s [%s]" % (conn_type, host))
+    log_info("Connecting to %s [%s]" % (conn_type, host))
     n_arp = n_ndp = 0
     try:
         nt = _systems[conn_type](host, *conn_args)
@@ -352,7 +352,7 @@ for conn_type, host, *conn_args in hosts:
             ip = item["ip"].split("%")[0]
             mac = item["mac"].lower()
             if ip.startswith("fe80:"):
-                log_debug("skipping link-local ip=%r mac=%r" % (ip, mac))
+                log_debug("Skipping link-local ip=%r mac=%r" % (ip, mac))
                 continue
             if verbose:
                 print("- found", ip, "->", mac)
@@ -361,27 +361,27 @@ for conn_type, host, *conn_args in hosts:
             else:
                 n_arp += 1
             cursor = conn.cursor()
-            log_debug("inserting ip=%r mac=%r now=%r" % (ip, mac, now))
+            log_debug("Inserting ip=%r mac=%r now=%r" % (ip, mac, now))
             cursor.execute("""INSERT INTO arplog (ip_addr, mac_addr, first_seen, last_seen)
                               VALUES (%(ip_addr)s, %(mac_addr)s, %(now)s, %(now)s)
                               ON DUPLICATE KEY UPDATE last_seen=%(now)s""",
                            {"ip_addr": ip, "mac_addr": mac, "now": now})
     except IOError as e:
-        log_error("connection to %r failed: %r" % (host, e))
+        log_error("Connection to %r failed: %r" % (host, e))
         errors += 1
-    log_info(" - logged %d ARP entries, %d NDP entries" % (n_arp, n_ndp))
+    log_info("[%s] Logged %d ARP entries, %d NDP entries" % (host, n_arp, n_ndp))
 conn.commit()
 
 if errors:
-    log_error("some hosts couldn't be scanned, exiting without cleanup")
+    log_error("Some hosts couldn't be scanned, exiting without cleanup")
     exit(1)
 
-log_info("cleaning up records more than %d days old" % max_age_days)
+log_info("Cleaning up records more than %d days old" % max_age_days)
 max_age_secs = max_age_days*86400
 cursor = conn.cursor()
 cursor.execute("DELETE FROM arplog WHERE last_seen < %(then)s",
                {"then": time.time() - max_age_secs})
 conn.commit()
 
-log_info("finished")
+log_info("Finished")
 conn.close()
