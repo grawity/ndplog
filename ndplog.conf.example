@@ -1,4 +1,4 @@
-# /etc/ndpwatch.conf -- ndpwatch configuration file
+# /etc/ndplog.conf -- ndplog configuration file
 
 # MySQL database location
 db = mysql://USERNAME:PASSWORD@localhost/DBNAME
@@ -13,4 +13,4 @@ host = linux, -
 host = linux, arplog@linuxgw.example.com
 
 # Poll remote RouterOS hosts using tikapy to access the API
-host = routeros, mtikgw.example.com, ndpwatch, PASSWORD
+host = routeros, mtikgw.example.com, ndplog, PASSWORD

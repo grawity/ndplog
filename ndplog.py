@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-# ndpwatch - poll ARP & ND caches and store to database
-# (c) 2016-2020 Mantas Mikulėnas <grawity@gmail.com>
-# Released under the MIT License (dist/LICENSE.mit)
+# ndplog - poll ARP & ND caches and store to database
+# (c) 2016-2021 Mantas Mikulėnas <grawity@gmail.com>
+# Released under the MIT License
 import argparse
 import ipaddress
 import json
@@ -299,7 +299,7 @@ _systems = {
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-c", "--config",
-                    default="/etc/ndpwatch.conf",
+                    default="/etc/ndplog.conf",
                     help="path to the configuration file")
 parser.add_argument("-v", "--verbose",
                     action="store_true",

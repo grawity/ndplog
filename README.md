@@ -1,4 +1,4 @@
-# ndpwatch
+# ndplog
 
 A script to poll the neighbor caches (aka ARP tables) from hosts and gateways, then store in a MySQL database.
 
@@ -15,4 +15,4 @@ The following Python modules are needed:
 
 ### Configuration
 
-Linux, Solaris, and RouterOS hosts can be polled (the former via SSH, the latter via RouterOS API). See included `ndpwatch.conf.example`.
+Linux, Solaris, and RouterOS hosts can be polled (the former via SSH, the latter via RouterOS API). See included `ndplog.conf.example`.
