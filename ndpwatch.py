@@ -294,7 +294,15 @@ _systems = {
     "routeros": RouterOsNeighbourTable,
 }
 
-config = os.path.expanduser("~/.config/nullroute.eu.org/ndpwatch.conf")
+configs = [
+    os.path.expanduser("~/.config/nullroute.eu.org/ndpwatch.conf"),
+    "/etc/ndpwatch.conf",
+]
+
+for config in configs:
+    if os.path.exists(config):
+        break
+
 db_url = None
 hosts = []
 max_age_days = 6*30
