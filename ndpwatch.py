@@ -19,7 +19,9 @@ except ImportError:
 # Log functions (which should start doing syslog one day)
 
 def log_debug(msg):
-    pass
+    global verbose
+    if verbose:
+        print(msg)
 
 def log_info(msg):
     print(msg, file=sys.stdout, flush=True)
@@ -297,6 +299,7 @@ _systems = {
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-c", "--config", help="path to ndpwatch.conf")
+parser.add_argument("-v", "--verbose", action="store_true")
 args = parser.parse_args()
 
 if args.config:
@@ -312,7 +315,7 @@ db_url = None
 hosts = []
 max_age_days = 6*30
 mode = "all"
-verbose = False
+verbose = args.verbose
 
 with open(config, "r") as f:
     for line in f:
@@ -354,8 +357,7 @@ for conn_type, host, *conn_args in hosts:
             if ip.startswith("fe80:"):
                 log_debug("Skipping link-local ip=%r mac=%r" % (ip, mac))
                 continue
-            if verbose:
-                print("- found", ip, "->", mac)
+            log_debug("Found %s -> %s" % (ip, mac))
             if ":" in ip:
                 n_ndp += 1
             else:
