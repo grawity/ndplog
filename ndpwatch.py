@@ -314,7 +314,6 @@ else:
 db_url = None
 hosts = []
 max_age_days = 6*30
-mode = "all"
 verbose = args.verbose
 
 with open(config, "r") as f:
