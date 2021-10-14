@@ -298,25 +298,20 @@ _systems = {
 }
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-c", "--config", help="path to ndpwatch.conf")
-parser.add_argument("-v", "--verbose", action="store_true")
+parser.add_argument("-c", "--config",
+                    default="/etc/ndpwatch.conf",
+                    help="path to the configuration file")
+parser.add_argument("-v", "--verbose",
+                    action="store_true",
+                    help="show more detail about operations")
 args = parser.parse_args()
-
-if args.config:
-    config = args.config
-else:
-    configs = [os.path.expanduser("~/.config/nullroute.eu.org/ndpwatch.conf"),
-               "/etc/ndpwatch.conf"]
-    for config in configs:
-        if os.path.exists(config):
-            break
 
 db_url = None
 hosts = []
 max_age_days = 6*30
 verbose = args.verbose
 
-with open(config, "r") as f:
+with open(args.config, "r") as f:
     for line in f:
         if line.startswith("#"):
             continue
