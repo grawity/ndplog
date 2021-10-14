@@ -1,4 +1,4 @@
-# ndpwatch configuration file
+# /etc/ndpwatch.conf -- ndpwatch configuration file
 
 # MySQL database location
 db = mysql://USERNAME:PASSWORD@localhost/DBNAME
