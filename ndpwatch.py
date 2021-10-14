@@ -323,6 +323,8 @@ with open(args.config, "r") as f:
             hosts.append(v)
         elif k == "age":
             max_age_days = int(v)
+        else:
+            log_error("Unrecognized config key %r" % k)
 
 if not db_url:
     log_error("Database URL not configured")
