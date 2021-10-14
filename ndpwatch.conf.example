@@ -1,0 +1,16 @@
+# ndpwatch configuration file
+
+# MySQL database location
+db = mysql://USERNAME:PASSWORD@localhost/DBNAME
+
+# Max age for inactive entries
+age = 365
+
+# Poll local host using `ip neigh`
+host = linux, -
+
+# Poll remote hosts using `ssh <host> ip neigh`
+host = linux, arplog@linuxgw.example.com
+
+# Poll remote RouterOS hosts using tikapy to access the API
+host = routeros, mtikgw.example.com, ndpwatch, PASSWORD
