@@ -4,12 +4,16 @@
 # Released under the MIT License (dist/LICENSE.mit)
 import ipaddress
 import json
-import mysql.connector
 import os
 import re
 import time
 import sys
 import subprocess
+
+try:
+    import MySQLdb
+except ImportError:
+    import mysql.connector as MySQLdb
 
 # Log functions (which should start doing syslog one day)
 
@@ -319,10 +323,10 @@ if not m:
     log_error("unrecognized database URL %r" % db_url)
     exit(2)
 
-conn = mysql.connector.connect(host=m.group(3),
-                               user=m.group(1),
-                               password=m.group(2),
-                               database=m.group(4))
+conn = MySQLdb.connect(host=m.group(3),
+                       user=m.group(1),
+                       password=m.group(2),
+                       database=m.group(4))
 
 errors = 0
 for conn_type, host, *conn_args in hosts:
